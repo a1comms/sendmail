@@ -63,7 +63,10 @@ func (s *Session) Data(r io.Reader) error {
 		return err
 	}
 	envelope.Send()
-	errs := envelope.Send()
+	errs, err := envelope.Send()
+	if err != nil {
+		return err
+	}
 	for result := range errs {
 		switch {
 		case result.Level > sendmail.WarnLevel:

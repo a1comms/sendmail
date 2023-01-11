@@ -44,7 +44,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, "Unauthorized sender domain")
 				return
 			}
-			errs := envelope.Send()
+			errs, err := envelope.Send()
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, err)
+				return
+			}
 			for result := range errs {
 				switch {
 				case result.Level > sendmail.WarnLevel:

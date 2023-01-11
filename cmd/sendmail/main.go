@@ -110,12 +110,15 @@ func main() {
 			log.Fatal(err)
 		}
 
-		senderDomain := sendmail.GetDomainFromAddress(envelope.Header["From"][0])
+		senderDomain := sendmail.GetDomainFromAddress(envelope.GetSender())
 		if len(senderDomains) > 0 && !senderDomains.Contains(senderDomain) {
 			log.Fatalf("Attempt to unauthorized send with domain %s", senderDomain)
 		}
 
-		errs := envelope.Send()
+		errs, err := envelope.Send()
+		if err != nil {
+			log.Fatalf("Failed to send: %s", err)
+		}
 		for result := range errs {
 			switch {
 			case result.Level > sendmail.WarnLevel:

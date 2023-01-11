@@ -5,12 +5,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/mail"
 	"os"
 	"os/user"
 	"sort"
 	"strings"
 	"sync"
+
+	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -115,16 +119,42 @@ func (e *Envelope) GetSender() string {
 // Send message.
 // It returns channel for results of send.
 // After the end of sending channel are closed.
-func (e *Envelope) Send() <-chan Result {
-	smartHost := os.Getenv("SENDMAIL_SMART_HOST")
-	if smartHost != "" {
-		return e.SendSmarthost(
-			smartHost,
-			os.Getenv("SENDMAIL_SMART_LOGIN"),
-			os.Getenv("SENDMAIL_SMART_PASSWORD"),
-		)
+func (e *Envelope) Send() (<-chan Result, error) {
+	var relayConfig struct {
+		RelayHost     string `yaml:"relay_host,omitempty"`
+		RelayLogin    string `yaml:"relay_login,omitempty"`
+		RelayPassword string `yaml:"relay_password,omitempty"`
 	}
-	return e.SendLikeMTA()
+
+	data, err := ioutil.ReadFile("/etc/go-sendmail.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read config file: %s", err)
+	}
+
+	err = yaml.Unmarshal([]byte(data), &relayConfig)
+	if err != nil {
+		return nil, fmt.Errorf("Error while parsing config file: %s", err)
+	}
+
+	if relayConfig.RelayHost == "" {
+		relayConfig.RelayHost = os.Getenv("SENDMAIL_SMART_HOST")
+	}
+	if relayConfig.RelayLogin == "" {
+		relayConfig.RelayLogin = os.Getenv("SENDMAIL_SMART_LOGIN")
+	}
+	if relayConfig.RelayPassword == "" {
+		relayConfig.RelayPassword = os.Getenv("SENDMAIL_SMART_PASSWORD")
+	}
+
+	if relayConfig.RelayHost != "" {
+		return e.SendSmarthost(
+			relayConfig.RelayHost,
+			relayConfig.RelayLogin,
+			relayConfig.RelayPassword,
+		), nil
+	}
+
+	return e.SendLikeMTA(), nil
 }
 
 // GenerateMessage create body from mail.Message
