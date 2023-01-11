@@ -25,7 +25,7 @@ func (e *Envelope) SendSmarthost(smarthost, login, password string) <-chan Resul
 			results <- Result{FatalLevel, err, "Generate message", nil}
 		} else {
 			fields := Fields{
-				"sender":     e.Header.Get("From"),
+				"sender":     e.GetSender(),
 				"smarthost":  smarthost,
 				"recipients": strings.Join(e.Recipients, ","),
 			}
@@ -33,7 +33,7 @@ func (e *Envelope) SendSmarthost(smarthost, login, password string) <-chan Resul
 				// Connect to the server, authenticate, set the sender and recipient,
 				// and send the email all in one step.
 				err := smtp.SendMail(smarthost, auth,
-					e.Header.Get("From"),
+					e.GetSender(),
 					e.Recipients,
 					generatedBody)
 				if err == nil {

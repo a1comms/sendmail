@@ -52,7 +52,10 @@ func NewEnvelope(config *Config) (Envelope, error) {
 	if config.Sender != "" {
 		msg.Header["From"] = []string{config.Sender}
 	} else {
-		config.Sender = msg.Header.Get("From")
+		sender, _ := msg.Header.AddressList("From")
+		if len(sender) > 0 {
+			config.Sender = sender[0].Address
+		}
 		if config.Sender == "" {
 			user, err := user.Current()
 			if err == nil {
@@ -97,6 +100,16 @@ func NewEnvelope(config *Config) (Envelope, error) {
 	}
 
 	return Envelope{msg, recipients, config.PortSMTP}, nil
+}
+
+func (e *Envelope) GetSender() string {
+	sender, _ := e.Header.AddressList("From")
+
+	if len(sender) > 0 {
+		return sender[0].Address
+	}
+
+	return ""
 }
 
 // Send message.
