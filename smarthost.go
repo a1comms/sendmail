@@ -4,6 +4,8 @@ import (
 	"net"
 	"net/smtp"
 	"strings"
+
+	nvsmtp "github.com/n0madic/sendmail/smtp-noverify"
 )
 
 // SendSmarthost message delivery through an external mail server.
@@ -32,7 +34,7 @@ func (e *Envelope) SendSmarthost(smarthost, login, password string) <-chan Resul
 			go func() {
 				// Connect to the server, authenticate, set the sender and recipient,
 				// and send the email all in one step.
-				err := smtp.SendMail(smarthost, auth,
+				err := nvsmtp.SendMail(smarthost, auth,
 					e.GetSender(),
 					e.Recipients,
 					generatedBody)
